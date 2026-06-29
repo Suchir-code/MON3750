@@ -1,0 +1,21 @@
+# Keep this GitHub repo focused on the Reactor Academy app.
+*
+
+!.gitignore
+!Reactor_Academy_app/
+!Reactor_Academy_app/reactor-academy/
+!Reactor_Academy_app/reactor-academy/**
+!Reactor_Academy_app/Reactor-Academy/
+!Reactor_Academy_app/Reactor-Academy/**
+
+# App files that should stay local
+Reactor_Academy_app/reactor-academy/.next/
+Reactor_Academy_app/reactor-academy/node_modules/
+Reactor_Academy_app/reactor-academy/.env.local
+Reactor_Academy_app/reactor-academy/.env
+Reactor_Academy_app/reactor-academy/*.tsbuildinfo
+Reactor_Academy_app/Reactor-Academy/.next/
+Reactor_Academy_app/Reactor-Academy/node_modules/
+Reactor_Academy_app/Reactor-Academy/.env.local
+Reactor_Academy_app/Reactor-Academy/.env
+Reactor_Academy_app/Reactor-Academy/*.tsbuildinfo
