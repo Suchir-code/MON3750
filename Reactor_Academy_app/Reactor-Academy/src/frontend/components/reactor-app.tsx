@@ -81,12 +81,12 @@ type TabId = "today" | "ai" | "opportunities" | "build" | "passport";
 type PassportItem = BootstrapData["passportItems"][number];
 
 const tabs = [
-  { id: "today", label: "Today", icon: Home },
-  { id: "ai", label: "Ask AI", icon: Bot },
-  { id: "build", label: "Build Room", icon: ClipboardCheck },
-  { id: "passport", label: "Passport", icon: ShieldCheck },
-  { id: "opportunities", label: "Opportunities", icon: Search },
-] satisfies { id: TabId; label: string; icon: LucideIcon }[];
+  { id: "today", label: "Today", hint: "Command centre", icon: Home },
+  { id: "ai", label: "Ask AI", hint: "AI support", icon: Bot },
+  { id: "build", label: "Build Room", hint: "Tasks and proof", icon: ClipboardCheck },
+  { id: "passport", label: "Passport", hint: "Proof record", icon: ShieldCheck },
+  { id: "opportunities", label: "Opportunities", hint: "Events and links", icon: Search },
+] satisfies { id: TabId; label: string; hint: string; icon: LucideIcon }[];
 
 export function ReactorApp() {
   const [session, setSession] = useState<Session | null>(null);
@@ -325,32 +325,50 @@ function Shell({
   onSignOut: () => void;
   children: React.ReactNode;
 }) {
+  const activeTabMeta = tabs.find((tab) => tab.id === activeTab) ?? tabs[0];
+
   return (
     <main className="app-bg min-h-screen">
       <Background />
       <div className="relative grid min-h-screen w-full gap-4 px-3 py-3 lg:grid-cols-[248px_minmax(0,1fr)] lg:px-6 lg:py-5">
-        <aside className="app-surface-strong hidden h-[calc(100vh-2.5rem)] flex-col rounded-lg border p-3 backdrop-blur-xl lg:sticky lg:top-5 lg:flex">
+        <aside className="app-surface-strong hidden h-[calc(100vh-2.5rem)] flex-col rounded-2xl border p-3 backdrop-blur-xl lg:sticky lg:top-5 lg:flex">
           <Brand />
           <nav className="mt-6 grid gap-1.5">
             {tabs.map((tab) => (
               <TabButton key={tab.id} tab={tab} active={activeTab === tab.id} onClick={() => onTabChange(tab.id)} />
             ))}
           </nav>
-          <div className="mt-auto rounded-lg border border-[#fcb33b33] bg-black/30 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+          <div className="mt-auto rounded-xl border border-[#fcb33b22] bg-white/[0.035] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-[#fcb33b]">Tutor hours</p>
             <p className="mt-2 text-sm font-bold">6am-12pm</p>
             <p className="mt-1 text-xs leading-5 text-[#c5bba8]">AI first, deep dive second, tutor when needed.</p>
           </div>
-          <button onClick={onSignOut} className="app-border app-muted-text mt-3 flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold hover:border-[var(--border-strong)]">
+          <button onClick={onSignOut} className="app-border app-muted-text mt-3 flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition hover:border-[var(--border-strong)] hover:bg-[#fcb33b0d]">
             <LogOut size={16} /> Sign out
           </button>
         </aside>
 
         <section className="min-w-0 pb-24 lg:pb-0">
-          <header className="app-surface-strong mb-3 flex items-center justify-between rounded-lg border p-3 backdrop-blur-xl lg:hidden">
+          <header className="app-surface-strong mb-3 flex items-center justify-between rounded-2xl border p-3 backdrop-blur-xl lg:hidden">
             <Brand compact />
             <div className="flex items-center gap-2">
               <button onClick={onSignOut} className="app-border app-accent rounded-lg border px-3 py-2 text-sm font-bold">Sign out</button>
+            </div>
+          </header>
+          <header className="app-surface mb-4 hidden items-center justify-between rounded-2xl border px-5 py-4 backdrop-blur-xl lg:flex">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#fcb33b]">
+                Reactor Builder OS
+              </p>
+              <h1 className="mt-1 text-2xl font-black">{activeTabMeta.label}</h1>
+              <p className="mt-1 text-sm text-[#c5bba8]">{activeTabMeta.hint}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {["Week 1 demo", "Supabase live", "AI ready"].map((item) => (
+                <span key={item} className="rounded-full border border-[#fcb33b22] bg-[#fcb33b0d] px-3 py-2 text-xs font-black text-[#d4c5ad]">
+                  {item}
+                </span>
+              ))}
             </div>
           </header>
           {children}
@@ -376,6 +394,7 @@ function Shell({
 }
 
 function Today({ data, onTabChange }: { data: BootstrapData; onTabChange: (tab: TabId) => void }) {
+  const [commandMode, setCommandMode] = useState<"focus" | "proof" | "support">("focus");
   const month = data.currentMonth;
   const profile = data.profile;
   const currentWeek = getCurrentCalendarWeek();
@@ -396,6 +415,30 @@ function Today({ data, onTabChange }: { data: BootstrapData; onTabChange: (tab: 
   const nextAction = currentWeekProof
     ? "Review the proof you saved, then ask AI or a tutor how to make it stronger."
     : "Add one useful piece of evidence for this week in Build Room.";
+  const modeCopy = {
+    focus: {
+      label: "Focus",
+      title: "Today is about one clear weekly move.",
+      text: week.studentAction,
+      action: "Open Build Room",
+      tab: "build" as TabId,
+    },
+    proof: {
+      label: "Proof",
+      title: currentWeekProof ? "Proof exists. Make it sharper." : "No Week 1 proof yet.",
+      text: currentWeekProof?.title ?? "Capture one note, link, image, PDF, or draft that proves progress.",
+      action: currentWeekProof ? "View Passport" : "Add Proof",
+      tab: currentWeekProof ? "passport" as TabId : "build" as TabId,
+    },
+    support: {
+      label: "Support",
+      title: "Use AI first, then escalate only if needed.",
+      text: "Ask Reactor AI for a clearer task, a deep-dive video, or mentor questions before booking tutor help.",
+      action: "Ask AI",
+      tab: "ai" as TabId,
+    },
+  };
+  const activeMode = modeCopy[commandMode];
 
   return (
     <div className="grid gap-3">
@@ -406,12 +449,45 @@ function Today({ data, onTabChange }: { data: BootstrapData; onTabChange: (tab: 
             <Pill icon={Map}>Week {currentWeek}</Pill>
             <Pill icon={Compass}>{profile?.pathway ?? "Pathway pending"}</Pill>
           </div>
-          <h1 className="mt-4 max-w-4xl text-3xl font-black leading-tight tracking-tight md:text-5xl">
+          <h1 className="mt-4 max-w-4xl text-3xl font-black leading-tight tracking-tight text-[#f7efe2] md:text-5xl">
             {week.studentAction}
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-[#c5bba8] md:text-base">
             {week.format}: {week.taught}
           </p>
+
+          <div className="mt-5 rounded-lg border border-[#fcb33b55] bg-black/30 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <div className="grid gap-2 rounded-lg bg-black/30 p-1 sm:grid-cols-3">
+              {Object.entries(modeCopy).map(([key, item]) => (
+                <button
+                  key={key}
+                  onClick={() => setCommandMode(key as "focus" | "proof" | "support")}
+                  className={`rounded-lg px-4 py-3 text-sm font-black transition duration-200 ${
+                    commandMode === key
+                      ? "bg-[#fcb33b] text-[#050606] shadow-[0_14px_32px_rgba(252,179,59,0.22)]"
+                      : "text-[#c5bba8] hover:bg-[#fcb33b14] hover:text-white"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 grid gap-3 rounded-2xl border border-[#fcb33b33] bg-[#fcb33b10] p-4 md:grid-cols-[minmax(0,1fr)_170px] md:items-center">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#fcb33b]">
+                  Command mode
+                </p>
+                <h2 className="mt-2 text-2xl font-black">{activeMode.title}</h2>
+                <p className="mt-2 text-sm leading-6 text-[#c5bba8]">{activeMode.text}</p>
+              </div>
+              <button
+                onClick={() => onTabChange(activeMode.tab)}
+                className="rounded-lg bg-[#fcb33b] px-4 py-3 text-sm font-black text-[#050606] shadow-[0_14px_32px_rgba(252,179,59,0.2)] transition hover:-translate-y-0.5"
+              >
+                {activeMode.action}
+              </button>
+            </div>
+          </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-3">
             <StatusTile label="This month" value={`${monthProgress}%`} text={`${currentMonthProof.length}/4 weekly proof items saved`} />
@@ -419,13 +495,13 @@ function Today({ data, onTabChange }: { data: BootstrapData; onTabChange: (tab: 
             <StatusTile label="Pathway" value={profile?.pathway ?? "Pending"} text={profile?.selected_mission ?? "Choose a mission"} />
           </div>
 
-          <div className="mt-5 rounded-lg border border-[#fcb33b55] bg-[#fcb33b10] p-4">
+          <div className="mt-5 rounded-2xl border border-[#fcb33b33] bg-[#fcb33b0d] p-4">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-[#fcb33b]">
                   Best next move
                 </p>
-                <h2 className="mt-2 text-xl font-black">{nextAction}</h2>
+                <h2 className="mt-2 text-xl font-black text-[#f7efe2]">{nextAction}</h2>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-[#c5bba8]">
                   Keep today simple: learn what matters, capture proof, and only
                   escalate when the AI or deep dives cannot unblock you.
@@ -433,7 +509,7 @@ function Today({ data, onTabChange }: { data: BootstrapData; onTabChange: (tab: 
               </div>
               <button
                 onClick={() => onTabChange(currentWeekProof ? "ai" : "build")}
-                className="rounded-lg bg-[#fcb33b] px-4 py-3 text-sm font-black text-[#050606]"
+                className="rounded-xl bg-[#f0ad3d] px-4 py-3 text-sm font-black text-[#111413] shadow-[0_10px_24px_rgba(240,173,61,0.14)]"
               >
                 {currentWeekProof ? "Strengthen with AI" : "Add proof now"}
               </button>
@@ -483,7 +559,7 @@ function Today({ data, onTabChange }: { data: BootstrapData; onTabChange: (tab: 
             })}
           </div>
           <div className="mt-5 h-2 rounded-full bg-white/10">
-            <div className="h-full rounded-full bg-[#fcb33b]" style={{ width: `${Math.max(progress, 8)}%` }} />
+            <div className="h-full rounded-full bg-[#f0ad3d]" style={{ width: `${Math.max(progress, 8)}%` }} />
           </div>
           <p className="mt-2 text-xs font-bold text-[#c5bba8]">{progress}% passport progress</p>
         </Panel>
@@ -549,7 +625,7 @@ function Today({ data, onTabChange }: { data: BootstrapData; onTabChange: (tab: 
 
 function StatusTile({ label, value, text }: { label: string; value: string; text: string }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-black/25 p-4">
+    <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
       <p className="text-xs font-black uppercase tracking-[0.14em] text-[#fcb33b]">
         {label}
       </p>
@@ -1982,12 +2058,12 @@ function SetupProblem({ message, title = "Setup needed" }: { message: string; ti
 
 function Panel({ title, icon: Icon, children }: { title?: string; icon?: LucideIcon; children: React.ReactNode }) {
   return (
-    <section className="app-surface group relative overflow-hidden rounded-lg border p-4 backdrop-blur-xl transition duration-200 hover:border-[#fcb33b66] hover:shadow-[0_24px_70px_rgba(252,179,59,0.08)] md:p-5">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#fcb33b66] to-transparent opacity-60" />
+    <section className="app-surface group relative overflow-hidden rounded-2xl border p-4 backdrop-blur-xl transition duration-200 hover:border-[#fcb33b44] md:p-5">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#fcb33b33] to-transparent opacity-50" />
       {title && Icon && (
         <div className="mb-4 flex items-center gap-3">
-          <div className="app-accent app-accent-soft rounded-lg p-2 shadow-[0_10px_24px_rgba(252,179,59,0.12)] transition group-hover:scale-105"><Icon size={19} /></div>
-          <h2 className="text-xl font-black">{title}</h2>
+          <div className="app-accent app-accent-soft rounded-xl p-2 transition group-hover:scale-105"><Icon size={19} /></div>
+          <h2 className="text-xl font-black text-[#f7efe2]">{title}</h2>
         </div>
       )}
       {children}
@@ -1997,23 +2073,23 @@ function Panel({ title, icon: Icon, children }: { title?: string; icon?: LucideI
 
 function ActionCard({ icon: Icon, title, text, onClick }: { icon: LucideIcon; title: string; text: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="app-border app-muted-surface group rounded-lg border p-4 text-left transition duration-200 hover:-translate-y-0.5 hover:border-[var(--border-strong)] hover:bg-[var(--accent-soft)] hover:shadow-[0_16px_38px_rgba(252,179,59,0.08)]">
+    <button onClick={onClick} className="app-border app-muted-surface group rounded-2xl border p-4 text-left transition duration-200 hover:-translate-y-0.5 hover:border-[var(--border-strong)] hover:bg-[var(--accent-soft)]">
       <div className="flex items-center justify-between gap-3">
         <Icon className="app-accent transition group-hover:scale-110" size={22} />
         <ArrowRight className="text-[#fcb33b66] transition group-hover:translate-x-1 group-hover:text-[#fcb33b]" size={17} />
       </div>
-      <p className="mt-3 font-black group-hover:text-[#fcb33b]">{title}</p>
+      <p className="mt-3 font-black text-[#f7efe2] group-hover:text-[#f0ad3d]">{title}</p>
       <p className="app-muted-text mt-1 text-sm leading-6">{text}</p>
     </button>
   );
 }
 
 function ResultBlock({ title, text }: { title: string; text: string }) {
-  return <div className="rounded-lg border border-white/10 bg-black/25 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-[#fcb33b55]"><p className="text-xs font-black uppercase tracking-[0.14em] text-[#fcb33b]">{title}</p><p className="mt-2 text-sm leading-6">{text}</p></div>;
+  return <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] transition hover:border-[#fcb33b33]"><p className="text-xs font-black uppercase tracking-[0.14em] text-[#f0ad3d]">{title}</p><p className="mt-2 text-sm leading-6 text-[#f7efe2]">{text}</p></div>;
 }
 
 function ListBlock({ title, items }: { title: string; items: string[] }) {
-  return <div className="rounded-lg border border-white/10 bg-black/25 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-[#fcb33b55]"><p className="text-xs font-black uppercase tracking-[0.14em] text-[#fcb33b]">{title}</p><ul className="mt-3 space-y-2">{items.map((item) => <li key={item} className="flex gap-2 text-sm leading-6 text-[#d9c1a1]"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#fcb33b]" /> <span>{item}</span></li>)}</ul></div>;
+  return <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] transition hover:border-[#fcb33b33]"><p className="text-xs font-black uppercase tracking-[0.14em] text-[#f0ad3d]">{title}</p><ul className="mt-3 space-y-2">{items.map((item) => <li key={item} className="flex gap-2 text-sm leading-6 text-[#d4c5ad]"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#f0ad3d]" /> <span>{item}</span></li>)}</ul></div>;
 }
 
 function ChatBubble({
@@ -2231,26 +2307,31 @@ function ReactorGuideAvatar({
   );
 }
 
-function TabButton({ tab, active, onClick }: { tab: { id: TabId; label: string; icon: LucideIcon }; active: boolean; onClick: () => void }) {
+function TabButton({ tab, active, onClick }: { tab: { id: TabId; label: string; hint: string; icon: LucideIcon }; active: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`group relative flex items-center gap-3 rounded-lg border px-3 py-3 text-left text-sm font-bold transition ${active ? "border-[#fcb33b66] bg-[#fcb33b] text-[#050606] shadow-[0_12px_26px_rgba(252,179,59,0.18)]" : "border-transparent text-[#c5bba8] hover:border-[#fcb33b33] hover:bg-[#fcb33b18] hover:text-white"}`}>
-      <span className={`grid h-8 w-8 place-items-center rounded-lg transition ${active ? "bg-black/10" : "bg-white/[0.04] group-hover:bg-[#fcb33b22]"}`}>
+    <button onClick={onClick} className={`group relative flex items-center gap-3 rounded-2xl border px-3 py-3 text-left text-sm font-bold transition ${active ? "border-[#fcb33b44] bg-[#fcb33b18] text-[#f7efe2]" : "border-transparent text-[#bcb2a2] hover:border-[#fcb33b22] hover:bg-[#fcb33b0d] hover:text-[#f7efe2]"}`}>
+      <span className={`grid h-9 w-9 place-items-center rounded-xl transition ${active ? "bg-[#f0ad3d] text-[#111413]" : "bg-white/[0.04] group-hover:bg-[#fcb33b18]"}`}>
         <tab.icon size={18} />
       </span>
-      <span>{tab.label}</span>
-      {active && <span className="ml-auto h-2 w-2 rounded-full bg-[#050606]" />}
+      <span className="min-w-0">
+        <span className="block">{tab.label}</span>
+        <span className={`block truncate text-[11px] font-bold ${active ? "text-[#d4c5ad]" : "text-[#8f8779]"}`}>
+          {tab.hint}
+        </span>
+      </span>
+      {active && <span className="ml-auto h-2 w-2 rounded-full bg-[#f0ad3d]" />}
     </button>
   );
 }
 
 function Pill({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) {
-  return <span className="inline-flex items-center gap-2 rounded-lg border border-[#fcb33b44] bg-[#fcb33b18] px-3 py-2 text-xs font-black text-[#ffe0a3] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"><Icon size={14} />{children}</span>;
+  return <span className="inline-flex items-center gap-2 rounded-lg border border-[#fcb33b33] bg-[#fcb33b0d] px-3 py-2 text-xs font-black text-[#d4c5ad] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"><Icon size={14} />{children}</span>;
 }
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="app-accent-bg grid h-10 w-10 place-items-center rounded-lg text-lg font-black shadow-[0_14px_30px_rgba(252,179,59,0.18)]">R</div>
+      <div className="app-accent-bg grid h-10 w-10 place-items-center rounded-xl text-lg font-black shadow-[0_10px_24px_rgba(240,173,61,0.12)]">R</div>
       {!compact && <div><p className="text-sm font-black leading-4">Reactor Academy</p><p className="app-soft-text text-xs">Frontier Builder OS</p></div>}
     </div>
   );
